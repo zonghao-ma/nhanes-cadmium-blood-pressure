@@ -1,91 +1,252 @@
+```markdown
 # NHANES Cadmium and Blood Pressure Analysis
 
 ## Overview
 
-This repository contains a reproducible R workflow for analyzing the association between urinary cadmium and blood pressure among U.S. adults using NHANES 2017–2018 data.
+This repository contains a reproducible health data analysis project using the National Health and Nutrition Examination Survey (NHANES) 2017–2018 cycle.
 
-The project demonstrates applied skills in health data science, environmental epidemiology, survey-weighted regression, reproducible R programming, and manuscript-style table and figure generation.
+The project examines the association between urinary cadmium exposure and blood pressure outcomes among U.S. adults using survey-weighted statistical methods.
+
+This repository is designed as a portfolio project for PhD/RA applications, health data science roles, epidemiology research training, and data analyst positions.
 
 ## Research Question
 
-Is urinary cadmium exposure associated with systolic and diastolic blood pressure among U.S. adults?
+Is urinary cadmium exposure associated with systolic blood pressure among U.S. adults in NHANES 2017–2018?
 
 ## Data Source
 
-This project uses publicly available NHANES 2017–2018 data.
+The data are from the publicly available NHANES 2017–2018 cycle, administered by the U.S. Centers for Disease Control and Prevention National Center for Health Statistics.
 
-Raw NHANES data files are not included in this repository. Users should download the required `.XPT` files from the official NHANES website and place them in the `data_raw/` folder.
+NHANES data files used in this project include demographic, examination, laboratory, and questionnaire components.
 
-Required files:
+Raw NHANES `.XPT` files are not included in this repository and should be downloaded directly from the official NHANES website.
 
-- `DEMO_J.XPT`
-- `BPX_J.XPT`
-- `UM_J.XPT`
-- `BMX_J.XPT`
-- `SMQ_J.XPT`
-- `COT_J.XPT`
-- `ALB_CR_J.XPT`
+The cleaned participant-level analytic dataset is generated locally by the analysis script and is not included in this repository.
 
-## Methods
+## Study Population
 
-The analysis includes:
+The analytic sample includes adults aged 20 years or older with available data on:
 
-- importing NHANES demographic, examination, laboratory, smoking, urinary biomarker, and survey design data;
-- merging datasets by participant identifier;
-- restricting the analytic sample to adults aged 20 years or older;
-- creating a complete-case analytic dataset;
-- log2-transforming urinary cadmium;
-- calculating mean systolic and diastolic blood pressure;
-- defining the NHANES complex survey design using MEC weights, strata, and primary sampling units;
-- fitting survey-weighted linear regression models;
-- conducting sensitivity analyses;
-- generating manuscript-style tables and figures.
+- urinary cadmium
+- blood pressure measurements
+- survey design variables
+- demographic covariates
+- smoking-related variables
+- body mass index
+- urinary creatinine
 
-## Models
+Participants with missing values in the main analytic variables are excluded from the primary analysis.
 
-Primary outcome:
+## Exposure
 
-- Systolic blood pressure
+The primary exposure is urinary cadmium concentration.
 
-Primary exposure:
+Urinary cadmium is analyzed using:
 
-- Log2-transformed urinary cadmium
+- log-transformed urinary cadmium
+- urinary cadmium quartiles
 
-Sequential models:
+Urinary creatinine is included as an adjustment variable to account for urine dilution.
 
-- Model 1: unadjusted
-- Model 2: adjusted for age, sex, and race/ethnicity
-- Model 3: fully adjusted for age, sex, race/ethnicity, family income-to-poverty ratio, education, BMI, smoking status, log-transformed serum cotinine, and urinary creatinine
+## Outcomes
 
-Sensitivity analyses:
+The main outcome is systolic blood pressure.
 
-- Diastolic blood pressure outcome
-- Urinary cadmium quartiles
-- Unweighted linear regression model
+Additional blood pressure-related outcomes or sensitivity analyses may include:
 
-## Key Results
+- diastolic blood pressure
+- hypertension status
+- alternative covariate adjustment models
 
-The final complete-case analytic sample included 1,361 adults.
+## Statistical Analysis
 
-In the fully adjusted survey-weighted model, urinary cadmium was not significantly associated with systolic blood pressure.
+All analyses account for the NHANES complex survey design, including:
 
-Sensitivity analyses using diastolic blood pressure, urinary cadmium quartiles, and an unweighted model showed broadly consistent null findings.
+- survey weights
+- strata
+- primary sampling units
+
+The main statistical methods include:
+
+- data cleaning and merging across NHANES components
+- descriptive statistics
+- survey-weighted baseline characteristics
+- survey-weighted linear regression
+- covariate-adjusted regression models
+- sensitivity analyses
+- data visualization
 
 ## Repository Structure
 
 ```text
-.
-├── README.md
-├── scripts/
-│   └── 01_run_full_analysis.R
-├── docs/
-│   ├── writing_sample.pdf
-│   ├── variable_dictionary.md
-│   └── methods_summary.md
-├── outputs/
-│   ├── tables/
-│   └── figures/
+nhanes-cadmium-blood-pressure/
 ├── data_raw/
 │   └── README.md
-└── data_clean/
-    └── README.md
+├── data_clean/
+│   └── README.md
+├── docs/
+│   └── writing_sample_nhanes_cadmium_bp.pdf
+├── outputs/
+│   ├── figures/
+│   └── tables/
+├── scripts/
+│   └── 01_run_full_analysis.R
+├── .gitignore
+├── LICENSE
+└── README.md
+```
+
+## How to Reproduce
+
+### 1. Clone this repository
+
+```bash
+git clone https://github.com/zonghao-ma/nhanes-cadmium-blood-pressure.git
+cd nhanes-cadmium-blood-pressure
+```
+
+### 2. Install required R packages
+
+Run the following code in R:
+
+```r
+install.packages(c(
+  "tidyverse",
+  "haven",
+  "survey",
+  "srvyr",
+  "gtsummary",
+  "flextable",
+  "officer",
+  "broom"
+))
+```
+
+### 3. Download NHANES 2017–2018 files
+
+Download the required NHANES 2017–2018 `.XPT` files from the official NHANES website.
+
+Place the downloaded files in:
+
+```text
+data_raw/
+```
+
+### 4. Run the full analysis
+
+Run:
+
+```r
+source("scripts/01_run_full_analysis.R")
+```
+
+### 5. Check generated outputs
+
+The script will generate cleaned data and analysis outputs in:
+
+```text
+data_clean/
+outputs/tables/
+outputs/figures/
+```
+
+## Main Outputs
+
+### Tables
+
+The analysis script generates the following tables:
+
+- Table 1: Survey-weighted baseline characteristics
+- Table 2: Survey-weighted association between urinary cadmium and systolic blood pressure
+- Table 3: Sensitivity analyses
+
+Tables are saved in:
+
+```text
+outputs/tables/
+```
+
+### Figures
+
+The analysis script generates the following figures:
+
+- Figure 1: Distribution of urinary cadmium
+- Figure 2: Systolic blood pressure by urinary cadmium quartile
+- Figure 3: Forest plot of primary and sensitivity analyses
+
+Figures are saved in:
+
+```text
+outputs/figures/
+```
+
+## Example Figures
+
+![Distribution of urinary cadmium](outputs/figures/Figure1_cadmium_distribution.png)
+
+![Systolic blood pressure by urinary cadmium quartile](outputs/figures/Figure2_sbp_by_cadmium_quartile.png)
+
+![Forest plot of primary and sensitivity analyses](outputs/figures/Figure3_forest_plot_clean.png)
+
+## Writing Sample
+
+A short writing sample based on this analysis is available in:
+
+```text
+docs/writing_sample_nhanes_cadmium_bp.pdf
+```
+
+This document summarizes the background, methods, results, and interpretation of the analysis in a research-style format.
+
+## Skills Demonstrated
+
+This project demonstrates skills in:
+
+- R programming
+- health data analysis
+- NHANES data processing
+- complex survey design
+- survey-weighted regression
+- environmental epidemiology
+- blood pressure and cardiovascular risk analysis
+- data cleaning and variable construction
+- reproducible research workflow
+- statistical reporting
+- scientific writing
+- GitHub-based project organization
+
+## Reproducibility Notes
+
+Raw NHANES data files are not included because they should be downloaded from the official NHANES website.
+
+Cleaned participant-level data are also not included to avoid sharing individual-level analytic datasets.
+
+The analysis script is designed to reproduce the cleaned dataset, tables, and figures after the required raw NHANES files are placed in the `data_raw/` folder.
+
+## Limitations
+
+This project is based on cross-sectional NHANES data, so causal inference is limited.
+
+Urinary cadmium and blood pressure are measured at a single time point.
+
+Residual confounding may remain despite covariate adjustment.
+
+The project is intended for research training, reproducible data analysis demonstration, and portfolio presentation.
+
+## Suggested Citation
+
+If referencing this project, please cite it as:
+
+```text
+Ma, Z. NHANES Cadmium and Blood Pressure Analysis. GitHub repository.
+https://github.com/zonghao-ma/nhanes-cadmium-blood-pressure
+```
+
+## Author
+
+Zonghao Ma
+
+## License
+
+This project is licensed under the terms of the license included in this repository.
+```
