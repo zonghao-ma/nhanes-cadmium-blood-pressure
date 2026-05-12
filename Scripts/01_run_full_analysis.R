@@ -1,19 +1,21 @@
 ############################################################
-# Project: NHANES Cadmium and Blood Pressure
-# Script: 02_import_nhanes.R
+# Project: NHANES Cadmium and Blood Pressure Analysis
+# Script: 01_run_full_analysis.R
 # Purpose:
-#   1. Import NHANES 2017-2018 data
-#   2. Clean analytic variables
-#   3. Create survey design
-#   4. Export:
-#      - data_clean/analysis_df.rds
-#      - data_clean/analysis_df.csv
-#      - outputs/tables/Table1_weighted.docx
-#      - outputs/tables/Table2_weighted_clean.docx
-#      - outputs/tables/Table2_weighted_clean.csv
-#      - outputs/tables/Table3_sensitivity_clean.docx
-#      - outputs/tables/Table3_sensitivity_clean.csv
-#      - data_clean/model_objects.rds
+#   Reproduce the main NHANES 2017-2018 analysis, including:
+#   1. Import publicly available NHANES raw .XPT files
+#   2. Clean and merge analytic variables
+#   3. Create the NHANES complex survey design
+#   4. Fit primary and sensitivity regression models
+#   5. Export manuscript-style tables and figures
+#
+# Author: Zonghao Ma
+#
+# Notes:
+#   - Raw NHANES .XPT files are not included in this repository.
+#   - Please download the required NHANES 2017-2018 files and place them in data_raw/.
+#   - Cleaned participant-level datasets and model objects are generated locally
+#     but are not intended to be uploaded to GitHub.
 ############################################################
 
 # ==========================================================
@@ -23,27 +25,20 @@
 rm(list = ls())
 
 # ==========================================================
-# 1. Install and load packages
+# 1. Load packages
 # ==========================================================
 
-required_packages <- c(
-  "tidyverse",
-  "haven",
-  "survey",
-  "srvyr",
-  "gtsummary",
-  "flextable",
-  "officer",
-  "broom"
-)
-
-installed_packages <- rownames(installed.packages())
-
-for (pkg in required_packages) {
-  if (!(pkg %in% installed_packages)) {
-    install.packages(pkg)
-  }
-}
+# Required packages:
+# install.packages(c(
+#   "tidyverse",
+#   "haven",
+#   "survey",
+#   "srvyr",
+#   "gtsummary",
+#   "flextable",
+#   "officer",
+#   "broom"
+# ))
 
 library(tidyverse)
 library(haven)
@@ -64,7 +59,32 @@ dir.create("outputs/tables", recursive = TRUE, showWarnings = FALSE)
 dir.create("outputs/figures", recursive = TRUE, showWarnings = FALSE)
 
 # ==========================================================
-# 3. Import raw NHANES files
+# 3. Check required raw NHANES files
+# ==========================================================
+
+required_files <- c(
+  "data_raw/DEMO_J.XPT",
+  "data_raw/BPX_J.XPT",
+  "data_raw/UM_J.XPT",
+  "data_raw/BMX_J.XPT",
+  "data_raw/SMQ_J.XPT",
+  "data_raw/COT_J.XPT",
+  "data_raw/ALB_CR_J.XPT"
+)
+
+missing_files <- required_files[!file.exists(required_files)]
+
+if (length(missing_files) > 0) {
+  stop(
+    "Missing required NHANES raw data files:\n",
+    paste(missing_files, collapse = "\n"),
+    "\n\nPlease download these files from the official NHANES 2017-2018 website ",
+    "and place them in the data_raw/ folder before running this script."
+  )
+}
+
+# ==========================================================
+# 4. Import raw NHANES files
 # ==========================================================
 
 demo <- read_xpt("data_raw/DEMO_J.XPT")
@@ -76,7 +96,7 @@ cot  <- read_xpt("data_raw/COT_J.XPT")
 ucr  <- read_xpt("data_raw/ALB_CR_J.XPT")
 
 # ==========================================================
-# 4. Select and clean variables
+# 5. Select and clean variables
 # ==========================================================
 
 # ------------------------------
@@ -216,7 +236,7 @@ ucr2 <- ucr %>%
   rename(urine_creatinine = URXUCR)
 
 # ==========================================================
-# 5. Merge datasets
+# 6. Merge datasets
 # ==========================================================
 
 nhanes <- demo2 %>%
@@ -229,7 +249,7 @@ nhanes <- demo2 %>%
   filter(RIDAGEYR >= 20)
 
 # ==========================================================
-# 6. Create cadmium quartiles
+# 7. Create cadmium quartiles
 # ==========================================================
 
 nhanes <- nhanes %>%
@@ -243,7 +263,7 @@ nhanes <- nhanes %>%
   )
 
 # ==========================================================
-# 7. Create analysis dataset
+# 8. Create analysis dataset
 # ==========================================================
 
 analysis_df <- nhanes %>%
@@ -268,15 +288,15 @@ analysis_df <- nhanes %>%
     SDMVSTRA
   )
 
-# Save clean analytic dataset
+# Optional local outputs.
+# These participant-level files are intentionally excluded from GitHub via .gitignore.
 saveRDS(analysis_df, "data_clean/analysis_df.rds")
 write_csv(analysis_df, "data_clean/analysis_df.csv")
 
-# Quick sample size check
 cat("Final analytic sample size:", nrow(analysis_df), "\n")
 
 # ==========================================================
-# 8. Define NHANES survey design
+# 9. Define NHANES survey design
 # ==========================================================
 
 options(survey.lonely.psu = "adjust")
@@ -290,7 +310,7 @@ nhanes_design <- svydesign(
 )
 
 # ==========================================================
-# 9. Table 1: Weighted baseline characteristics
+# 10. Table 1: Weighted baseline characteristics
 # ==========================================================
 
 table1_weighted <- nhanes_design %>%
@@ -329,7 +349,9 @@ table1_weighted <- nhanes_design %>%
     ),
     missing = "no"
   ) %>%
-  modify_caption("**Table 1. Survey-weighted baseline characteristics of NHANES 2017–2018 adults**")
+  modify_caption(
+    "**Table 1. Survey-weighted baseline characteristics of NHANES 2017-2018 adults**"
+  )
 
 save_as_docx(
   "Table 1. Survey-weighted baseline characteristics" =
@@ -338,7 +360,7 @@ save_as_docx(
 )
 
 # ==========================================================
-# 10. Primary survey-weighted regression models
+# 11. Primary survey-weighted regression models
 # ==========================================================
 
 model_svy1 <- svyglm(
@@ -369,43 +391,41 @@ model_svy3 <- svyglm(
 )
 
 # ==========================================================
-# 10B. Helper functions for manuscript-style tables
+# 12. Helper functions for manuscript-style tables
 # ==========================================================
 
 get_svy_tcrit <- function(model) {
-  
   df_resid <- tryCatch(
     degf(model$survey.design),
     error = function(e) NA_real_
   )
-  
+
   if (is.na(df_resid) || df_resid <= 0) {
     return(1.96)
   }
-  
+
   t_crit <- qt(0.975, df = df_resid)
-  
+
   if (is.na(t_crit) || is.nan(t_crit) || is.infinite(t_crit)) {
     return(1.96)
   }
-  
+
   return(t_crit)
 }
 
 get_lm_tcrit <- function(model) {
-  
   df_resid <- df.residual(model)
-  
+
   if (is.na(df_resid) || df_resid <= 0) {
     return(1.96)
   }
-  
+
   t_crit <- qt(0.975, df = df_resid)
-  
+
   if (is.na(t_crit) || is.nan(t_crit) || is.infinite(t_crit)) {
     return(1.96)
   }
-  
+
   return(t_crit)
 }
 
@@ -417,7 +437,7 @@ calc_p_normal <- function(estimate, se) {
 
 format_p <- function(p) {
   p <- as.numeric(p)
-  
+
   case_when(
     is.na(p) ~ "",
     p < 0.001 ~ "<0.001",
@@ -434,12 +454,11 @@ format_ci <- function(low, high) {
 }
 
 extract_svy_result <- function(model, model_name, term_name = "log2_cadmium") {
-  
   coef_table <- as.data.frame(summary(model)$coefficients)
   coef_table$term <- rownames(coef_table)
-  
+
   t_crit <- get_svy_tcrit(model)
-  
+
   result <- coef_table %>%
     filter(term == term_name) %>%
     transmute(
@@ -461,17 +480,16 @@ extract_svy_result <- function(model, model_name, term_name = "log2_cadmium") {
       `p-value` = format_p(p_raw)
     ) %>%
     select(Model, Exposure, Beta, `95% CI`, `p-value`)
-  
+
   return(result)
 }
 
 extract_svy_terms <- function(model, analysis_name, terms_keep) {
-  
   coef_table <- as.data.frame(summary(model)$coefficients)
   coef_table$term <- rownames(coef_table)
-  
+
   t_crit <- get_svy_tcrit(model)
-  
+
   coef_table %>%
     filter(term %in% terms_keep) %>%
     mutate(
@@ -503,12 +521,11 @@ extract_svy_terms <- function(model, analysis_name, terms_keep) {
 }
 
 extract_lm_terms <- function(model, analysis_name, terms_keep) {
-  
   coef_table <- as.data.frame(summary(model)$coefficients)
   coef_table$term <- rownames(coef_table)
-  
+
   t_crit <- get_lm_tcrit(model)
-  
+
   coef_table %>%
     filter(term %in% terms_keep) %>%
     mutate(
@@ -533,7 +550,7 @@ extract_lm_terms <- function(model, analysis_name, terms_keep) {
 }
 
 # ==========================================================
-# 10C. Clean manuscript-style Table 2
+# 13. Table 2: Primary analysis results
 # ==========================================================
 
 table2_clean_df <- bind_rows(
@@ -545,7 +562,9 @@ table2_clean_df <- bind_rows(
 table2_clean_ft <- table2_clean_df %>%
   flextable() %>%
   autofit() %>%
-  set_caption("Table 2. Survey-weighted association between urinary cadmium and systolic blood pressure")
+  set_caption(
+    "Table 2. Survey-weighted association between urinary cadmium and systolic blood pressure"
+  )
 
 save_as_docx(
   "Table 2. Survey-weighted association between urinary cadmium and SBP" =
@@ -553,8 +572,13 @@ save_as_docx(
   path = "outputs/tables/Table2_weighted_clean.docx"
 )
 
+write_csv(
+  table2_clean_df,
+  "outputs/tables/Table2_weighted_clean.csv"
+)
+
 # ==========================================================
-# 11. Sensitivity analysis models
+# 14. Sensitivity analysis models
 # ==========================================================
 
 model_svy_dbp <- svyglm(
@@ -600,7 +624,7 @@ model_unweighted_full <- lm(
 )
 
 # ==========================================================
-# 11B. Clean manuscript-style Table 3
+# 15. Table 3: Sensitivity analysis results
 # ==========================================================
 
 table3_clean_df <- bind_rows(
@@ -632,10 +656,16 @@ save_as_docx(
   path = "outputs/tables/Table3_sensitivity_clean.docx"
 )
 
+write_csv(
+  table3_clean_df,
+  "outputs/tables/Table3_sensitivity_clean.csv"
+)
+
 # ==========================================================
-# 12. Export model summaries and clean result tables
+# 16. Optional local model object export
 # ==========================================================
 
+# This file is excluded from GitHub via .gitignore.
 saveRDS(
   list(
     model_svy1 = model_svy1,
@@ -648,34 +678,9 @@ saveRDS(
   "data_clean/model_objects.rds"
 )
 
-write_csv(
-  table2_clean_df,
-  "outputs/tables/Table2_weighted_clean.csv"
-)
-
-write_csv(
-  table3_clean_df,
-  "outputs/tables/Table3_sensitivity_clean.csv"
-)
-
 # ==========================================================
-# 13. Print clean results in console
+# 17. Figures
 # ==========================================================
-
-cat("\nTable 2 clean results:\n")
-print(table2_clean_df)
-
-cat("\nTable 3 clean results:\n")
-print(table3_clean_df)
-
-cat("\nSurvey design degrees of freedom:\n")
-print(degf(nhanes_design))
-
-# ==========================================================
-# 13B. Figures for manuscript-style output
-# ==========================================================
-
-library(ggplot2)
 
 # ------------------------------
 # Figure 1. Distribution of urinary cadmium
@@ -745,7 +750,7 @@ ggsave(
 )
 
 # ------------------------------
-# Figure 3. Clean forest plot
+# Figure 3. Forest plot
 # ------------------------------
 
 forest_df <- bind_rows(
@@ -760,7 +765,7 @@ forest_df <- bind_rows(
       Source = "Primary analysis"
     ) %>%
     select(Analysis, Exposure, Beta, `95% CI`, `p-value`, Source),
-  
+
   table3_clean_df %>%
     mutate(
       Analysis = case_when(
@@ -861,46 +866,64 @@ ggsave(
   height = 5.5
 )
 
-cat("\nFigures exported:\n")
-cat("- outputs/figures/Figure1_cadmium_distribution.png\n")
-cat("- outputs/figures/Figure1_cadmium_distribution.pdf\n")
-cat("- outputs/figures/Figure2_sbp_by_cadmium_quartile.png\n")
-cat("- outputs/figures/Figure2_sbp_by_cadmium_quartile.pdf\n")
-cat("- outputs/figures/Figure3_forest_plot.png\n")
-cat("- outputs/figures/Figure3_forest_plot.pdf\n")
-
 # ==========================================================
-# 14. Final completion message
+# 18. Additional descriptive quantiles
 # ==========================================================
 
-cat("\nAnalysis completed successfully.\n")
-cat("Files exported:\n")
-cat("- data_clean/analysis_df.rds\n")
-cat("- data_clean/analysis_df.csv\n")
-cat("- outputs/tables/Table1_weighted.docx\n")
-cat("- outputs/tables/Table2_weighted_clean.docx\n")
-cat("- outputs/tables/Table2_weighted_clean.csv\n")
-cat("- outputs/tables/Table3_sensitivity_clean.docx\n")
-cat("- outputs/tables/Table3_sensitivity_clean.csv\n")
-cat("- data_clean/model_objects.rds\n")
-
-library(survey)
-
-analysis_df <- readRDS("data_clean/analysis_df.rds")
-
-options(survey.lonely.psu = "adjust")
-
-nhanes_design <- svydesign(
-  id = ~SDMVPSU,
-  strata = ~SDMVSTRA,
-  weights = ~WTMEC2YR,
-  data = analysis_df,
-  nest = TRUE
-)
-
-svyquantile(
+descriptive_quantiles <- svyquantile(
   ~RIDAGEYR + cadmium + SBP + DBP,
   design = nhanes_design,
   quantiles = c(0.25, 0.5, 0.75),
   na.rm = TRUE
 )
+
+capture.output(
+  descriptive_quantiles,
+  file = "outputs/tables/descriptive_quantiles.txt"
+)
+
+# ==========================================================
+# 19. Export session information
+# ==========================================================
+
+writeLines(
+  capture.output(sessionInfo()),
+  "outputs/session_info.txt"
+)
+
+# ==========================================================
+# 20. Final completion message
+# ==========================================================
+
+cat("\nTable 2 clean results:\n")
+print(table2_clean_df)
+
+cat("\nTable 3 clean results:\n")
+print(table3_clean_df)
+
+cat("\nSurvey design degrees of freedom:\n")
+print(degf(nhanes_design))
+
+cat("\nFigures exported:\n")
+cat("- outputs/figures/Figure1_cadmium_distribution.png\n")
+cat("- outputs/figures/Figure1_cadmium_distribution.pdf\n")
+cat("- outputs/figures/Figure2_sbp_by_cadmium_quartile.png\n")
+cat("- outputs/figures/Figure2_sbp_by_cadmium_quartile.pdf\n")
+cat("- outputs/figures/Figure3_forest_plot_clean.png\n")
+cat("- outputs/figures/Figure3_forest_plot_clean.pdf\n")
+
+cat("\nAnalysis completed successfully.\n")
+cat("Files exported:\n")
+cat("- data_clean/analysis_df.rds\n")
+cat("- data_clean/analysis_df.csv\n")
+cat("- data_clean/model_objects.rds\n")
+cat("- outputs/tables/Table1_weighted.docx\n")
+cat("- outputs/tables/Table2_weighted_clean.docx\n")
+cat("- outputs/tables/Table2_weighted_clean.csv\n")
+cat("- outputs/tables/Table3_sensitivity_clean.docx\n")
+cat("- outputs/tables/Table3_sensitivity_clean.csv\n")
+cat("- outputs/tables/descriptive_quantiles.txt\n")
+cat("- outputs/figures/Figure1_cadmium_distribution.png\n")
+cat("- outputs/figures/Figure2_sbp_by_cadmium_quartile.png\n")
+cat("- outputs/figures/Figure3_forest_plot_clean.png\n")
+cat("- outputs/session_info.txt\n")
