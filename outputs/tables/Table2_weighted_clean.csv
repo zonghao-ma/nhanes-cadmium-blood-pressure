@@ -1,0 +1,4 @@
+Model,Exposure,Beta,95% CI,p-value
+Model 1: Unadjusted,Log2 urinary cadmium,1.32,"-0.09, 2.73",0.065
+Model 2: Demographic-adjusted,Log2 urinary cadmium,-0.25,"-1.79, 1.29",0.742
+Model 3: Fully adjusted,Log2 urinary cadmium,-0.59,"-1.95, 0.77",0.355
